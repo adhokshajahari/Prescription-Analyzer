@@ -500,7 +500,6 @@ with col_results:
                 use_container_width=True,
             )
 
-        # ── TAB 5: Chat ───────────────────────────────────────────────────
         with t5:
             st.markdown('<div class="section-label">💬 Ask about this Prescription</div>', unsafe_allow_html=True)
             for msg in st.session_state.chat_history:
@@ -545,6 +544,604 @@ with col_results:
                 if reply:
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                 st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🔊 ELDER-FRIENDLY VOICE & CARE GUIDE — Full width, always visible
+# ═══════════════════════════════════════════════════════════════════════════
+if st.session_state.analysis_result:
+    import streamlit.components.v1 as components
+
+    r_v = st.session_state.analysis_result
+    meds_v  = r_v.get("medications", [])
+    diags_v = r_v.get("probable_diagnoses", [])
+    summ_v  = r_v.get("summary", "")
+
+    # Init session state
+    for k, v in [("voice_text", ""), ("voice_lang_tag", "en-IN"),
+                 ("voice_lang_label", "English"), ("elder_simple_text", "")]:
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+    # Build English medicine schedule
+    med_lines = []
+    for i, m in enumerate(meds_v, 1):
+        name  = m.get("name") or "Unknown medicine"
+        dose  = m.get("dosage") or ""
+        freq  = m.get("frequency") or ""
+        dur   = m.get("duration") or ""
+        ind   = m.get("indication") or ""
+        parts = [f"Medicine {i}: {name}"]
+        if dose: parts.append(f"Dose {dose}")
+        if freq: parts.append(f"Take {freq}")
+        if dur:  parts.append(f"for {dur}")
+        if ind:  parts.append(f"This helps with {ind}")
+        med_lines.append(". ".join(parts))
+
+    diag_lines = [d.get("condition","") for d in diags_v if d.get("condition")]
+    eng_full = ". ".join(med_lines)
+    if diag_lines:
+        eng_full += ". Your doctor thinks you may have: " + ", ".join(diag_lines)
+    if summ_v:
+        eng_full += ". Summary: " + summ_v
+
+    if not st.session_state.voice_text:
+        st.session_state.voice_text = eng_full
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── SECTION HEADER ─────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#0a1628,#112244);
+                border:2px solid #2255aa;border-radius:20px;
+                padding:1.6rem 2rem;margin-bottom:1.5rem;text-align:center;">
+      <div style="font-size:2.2rem;font-weight:800;color:#ffffff;letter-spacing:-0.5px;margin-bottom:0.4rem;">
+        🔊 बोलकर सुनें · Listen & Understand
+      </div>
+      <div style="font-size:1.1rem;color:#90b8f0;font-weight:500;">
+        Designed for elderly patients &amp; those who prefer listening over reading
+        &nbsp;·&nbsp; 12 Indian languages supported
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── ROW 1: Language picker + Translate + Simple Explainer ──────────────
+    col_a, col_b, col_c = st.columns([2, 1, 1])
+
+    languages = {
+        "🇬🇧 English":   ("en-IN", None),
+        "🇮🇳 Hindi":     ("hi-IN", "Translate to very simple Hindi (Devanagari). Use short sentences. Keep medicine names in English."),
+        "🌿 Kannada":    ("kn-IN", "Translate to very simple Kannada. Short sentences. Keep medicine names in English."),
+        "🌺 Tamil":      ("ta-IN", "Translate to very simple Tamil. Short sentences. Keep medicine names in English."),
+        "🌸 Telugu":     ("te-IN", "Translate to very simple Telugu. Short sentences. Keep medicine names in English."),
+        "🦚 Malayalam":  ("ml-IN", "Translate to very simple Malayalam. Short sentences. Keep medicine names in English."),
+        "🌼 Marathi":    ("mr-IN", "Translate to very simple Marathi. Short sentences. Keep medicine names in English."),
+        "🌻 Gujarati":   ("gu-IN", "Translate to very simple Gujarati. Short sentences. Keep medicine names in English."),
+        "🌹 Bengali":    ("bn-IN", "Translate to very simple Bengali. Short sentences. Keep medicine names in English."),
+        "🌾 Punjabi":    ("pa-IN", "Translate to very simple Punjabi (Gurmukhi). Short sentences. Keep medicine names in English."),
+        "🏔️ Odia":       ("or-IN", "Translate to very simple Odia. Short sentences. Keep medicine names in English."),
+        "🌴 Assamese":   ("as-IN", "Translate to very simple Assamese. Short sentences. Keep medicine names in English."),
+    }
+
+    with col_a:
+        st.markdown('<p style="font-size:1.1rem;font-weight:700;color:#ddeeff;margin-bottom:0.3rem">🌐 Choose Your Language / अपनी भाषा चुनें</p>', unsafe_allow_html=True)
+        selected_lang = st.selectbox("Language", list(languages.keys()),
+                                     key="elder_lang_select", label_visibility="collapsed")
+    with col_b:
+        st.markdown('<p style="font-size:1.1rem;font-weight:700;color:#ddeeff;margin-bottom:0.3rem">&nbsp;</p>', unsafe_allow_html=True)
+        if st.button("🌐  Translate Now", use_container_width=True, key="elder_translate_btn"):
+            lang_tag, instruction = languages[selected_lang]
+            st.session_state.voice_lang_tag = lang_tag
+            st.session_state.voice_lang_label = selected_lang.split(" ", 1)[1]
+            if instruction is None:
+                st.session_state.voice_text = eng_full
+                st.success("✅ English ready!")
+            else:
+                with st.spinner(f"Translating to {st.session_state.voice_lang_label}..."):
+                    t_result, t_err = call_groq(
+                        prompt=f"{instruction}\n\nText:\n{eng_full}", max_tokens=2048)
+                if t_err:
+                    st.error(f"Translation error: {t_err}")
+                else:
+                    st.session_state.voice_text = t_result
+                    st.success(f"✅ Translated to {st.session_state.voice_lang_label}!")
+
+    with col_c:
+        st.markdown('<p style="font-size:1.1rem;font-weight:700;color:#ddeeff;margin-bottom:0.3rem">&nbsp;</p>', unsafe_allow_html=True)
+        if st.button("🧓  Simple Explanation", use_container_width=True, key="elder_explain_btn"):
+            with st.spinner("Making it simple..."):
+                simple_prompt = (
+                    "Explain this prescription in very simple language for an elderly patient "
+                    "who has no medical knowledge. Use short sentences, plain words, and bullet "
+                    "points. Mention WHEN to take each medicine (morning/afternoon/night), WHAT "
+                    "it is for, and any WARNING. Avoid all medical jargon.\n\n"
+                    f"Prescription data:\n{json.dumps(r_v, indent=2)}"
+                )
+                simple_text, s_err = call_groq(prompt=simple_prompt, max_tokens=1500)
+            if s_err:
+                st.error(f"Error: {s_err}")
+            else:
+                st.session_state.elder_simple_text = simple_text
+
+    # ── Simple Explanation Display ─────────────────────────────────────────
+    if st.session_state.elder_simple_text:
+        st.markdown(f"""
+        <div style="background:#0d2a0d;border:2px solid #2a7a2a;border-radius:16px;
+                    padding:1.4rem 1.8rem;margin:1rem 0;font-size:1.08rem;
+                    color:#ccffcc;line-height:1.8;">
+          <div style="font-size:1.25rem;font-weight:700;color:#66ff88;margin-bottom:0.7rem">
+            🧓 Simple Guide for You
+          </div>
+          {st.session_state.elder_simple_text.replace(chr(10), '<br>')}
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── BIG VOICE PLAYER (HTML component, full width) ───────────────────────
+    voice_text_escaped = (
+        st.session_state.voice_text
+        .replace("\\", "\\\\")
+        .replace("`", "\\`")
+        .replace("$", "\\$")
+        .replace("\n", " ")
+    )
+    lang_tag  = st.session_state.voice_lang_tag
+    lang_label = st.session_state.voice_lang_label
+
+    # Build per-medicine JS data
+    med_js_array = "["
+    for i, m in enumerate(meds_v):
+        name  = (m.get("name") or f"Medicine {i+1}").replace("`","").replace("$","")
+        freq  = (m.get("frequency") or "as prescribed").replace("`","").replace("$","")
+        dose  = (m.get("dosage") or "").replace("`","").replace("$","")
+        ind   = (m.get("indication") or "").replace("`","").replace("$","")
+        script = f"Medicine {i+1}: {name}. Dose: {dose}. Take: {freq}."
+        if ind: script += f" This is for {ind}."
+        script = script.replace("`","").replace("$","").replace("\\","")
+        med_js_array += f'{{name:`{name}`,freq:`{freq}`,dose:`{dose}`,script:`{script}`}},'
+    med_js_array += "]"
+
+    components.html(f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: transparent;
+    color: #ffffff;
+  }}
+  /* ── Main player card ── */
+  .player-card {{
+    background: linear-gradient(145deg, #0b1a3a, #152850);
+    border: 2.5px solid #2a5aa8;
+    border-radius: 22px;
+    padding: 2rem 2.2rem;
+    margin-bottom: 1.5rem;
+  }}
+  .player-title {{
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #7ec8ff;
+    margin-bottom: 0.3rem;
+  }}
+  .player-sub {{
+    font-size: 1rem;
+    color: #90a8c8;
+    margin-bottom: 1.5rem;
+  }}
+  /* ── Big control buttons ── */
+  .big-controls {{
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.4rem;
+  }}
+  .big-btn {{
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 1.35rem;
+    font-weight: 800;
+    padding: 1rem 2.2rem;
+    min-width: 160px;
+    transition: transform 0.12s, box-shadow 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+  }}
+  .big-btn:active {{ transform: scale(0.95); }}
+  #playBtn {{
+    background: linear-gradient(135deg, #1a7a3a, #0f5a28);
+    color: #ffffff;
+    box-shadow: 0 4px 18px #1a7a3a60;
+  }}
+  #playBtn:hover {{ background: linear-gradient(135deg, #22a04a, #187030); }}
+  #pauseBtn {{
+    background: linear-gradient(135deg, #7a6a00, #554a00);
+    color: #ffe066;
+    box-shadow: 0 4px 18px #7a6a0040;
+  }}
+  #pauseBtn:hover {{ background: linear-gradient(135deg, #9a8800, #7a6a00); }}
+  #stopBtn {{
+    background: linear-gradient(135deg, #7a1a1a, #551010);
+    color: #ffaaaa;
+    box-shadow: 0 4px 18px #7a1a1a40;
+  }}
+  #stopBtn:hover {{ background: linear-gradient(135deg, #9a2020, #7a1a1a); }}
+  /* ── Speed control ── */
+  .speed-section {{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 0.9rem 1.4rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }}
+  .speed-label {{ font-size: 1.1rem; font-weight: 700; color: #a0c4ff; white-space: nowrap; }}
+  input[type=range] {{
+    accent-color: #3a9bd5;
+    width: 220px;
+    height: 8px;
+    cursor: pointer;
+  }}
+  #speedVal {{
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    min-width: 50px;
+  }}
+  /* ── Status bar ── */
+  .status-bar {{
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 0.9rem 1.4rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #c0d8ff;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 3.2rem;
+  }}
+  .pulse-dot {{
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #444; flex-shrink: 0;
+  }}
+  .pulse-dot.speaking {{ background: #44ff88; animation: blink 0.9s infinite; }}
+  .pulse-dot.paused   {{ background: #ffcc00; }}
+  @keyframes blink {{ 0%,100%{{opacity:1}} 50%{{opacity:0.2}} }}
+
+  /* ── Per-medicine cards ── */
+  .med-section-title {{
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #7ec8ff;
+    margin: 0.5rem 0 1rem 0;
+  }}
+  .med-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }}
+  .med-card {{
+    background: linear-gradient(145deg, #0e2040, #172d55);
+    border: 2px solid #2a4a88;
+    border-radius: 18px;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }}
+  .med-name {{
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+  }}
+  .med-detail {{
+    font-size: 1rem;
+    color: #90b8e8;
+    line-height: 1.5;
+  }}
+  .med-play-btn {{
+    margin-top: 0.6rem;
+    background: linear-gradient(135deg, #1a5fa8, #0e3d70);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }}
+  .med-play-btn:hover {{ background: linear-gradient(135deg, #2070c0, #1a5090); }}
+  .med-play-btn:active {{ transform: scale(0.97); }}
+
+  /* ── Alarm section ── */
+  .alarm-card {{
+    background: linear-gradient(145deg, #1a0d30, #2a1550);
+    border: 2.5px solid #6633cc;
+    border-radius: 22px;
+    padding: 1.8rem 2rem;
+    margin-top: 1.5rem;
+  }}
+  .alarm-title {{
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #cc88ff;
+    margin-bottom: 0.4rem;
+  }}
+  .alarm-sub {{
+    font-size: 0.95rem;
+    color: #9966cc;
+    margin-bottom: 1.2rem;
+  }}
+  .alarm-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }}
+  .alarm-row {{
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+  }}
+  .alarm-name {{ font-size: 1rem; font-weight: 700; color: #ddd; flex:1; }}
+  input[type=time] {{
+    background: #1a0a2a;
+    color: #ffffff;
+    border: 1.5px solid #5533aa;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }}
+  #setAlarmsBtn {{
+    background: linear-gradient(135deg, #6633cc, #4422aa);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 0.9rem 2rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+    margin-top: 0.5rem;
+  }}
+  #setAlarmsBtn:hover {{ background: linear-gradient(135deg, #7744dd, #5533bb); }}
+  #alarmStatus {{
+    margin-top: 0.8rem;
+    font-size: 1rem;
+    color: #bb88ff;
+    min-height: 1.4rem;
+  }}
+  .tip-box {{
+    background: rgba(255,200,0,0.08);
+    border: 1px solid #aa880030;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    color: #ccaa44;
+    font-size: 0.9rem;
+    margin-top: 0.8rem;
+  }}
+</style>
+</head>
+<body>
+
+<!-- ── BIG VOICE PLAYER ── -->
+<div class="player-card">
+  <div class="player-title">🔊 Medicine Voice Player</div>
+  <div class="player-sub">Language: <strong style="color:#aaddff">{lang_label}</strong> &nbsp;·&nbsp; Press the big green button to listen</div>
+
+  <div class="big-controls">
+    <button class="big-btn" id="playBtn" onclick="startSpeech()">▶&nbsp; PLAY</button>
+    <button class="big-btn" id="pauseBtn" onclick="togglePause()">⏸&nbsp; PAUSE</button>
+    <button class="big-btn" id="stopBtn" onclick="stopSpeech()">⏹&nbsp; STOP</button>
+  </div>
+
+  <div class="speed-section">
+    <span class="speed-label">🐢 Reading Speed</span>
+    <input type="range" id="speedSlider" min="0.4" max="1.2" step="0.1" value="0.7"
+           oninput="speedVal.textContent=this.value+'×'">
+    <span id="speedVal">0.7×</span>
+    <span style="color:#6080a0;font-size:0.95rem">&nbsp;(Slow is better for elderly listeners)</span>
+  </div>
+
+  <div class="status-bar">
+    <div class="pulse-dot" id="pulseDot"></div>
+    <span id="statusText">Ready. Press ▶ PLAY to hear all your medicines.</span>
+  </div>
+</div>
+
+<!-- ── PER-MEDICINE CARDS ── -->
+<div class="med-section-title">💊 Listen to Each Medicine One by One</div>
+<div class="med-grid" id="medGrid"></div>
+
+<!-- ── MEDICINE ALARM SETTER ── -->
+<div class="alarm-card">
+  <div class="alarm-title">⏰ Set Medicine Reminder Alarms</div>
+  <div class="alarm-sub">Set a time for each medicine. Your device will beep and speak the medicine name when it is time to take it.</div>
+  <div class="alarm-grid" id="alarmGrid"></div>
+  <button id="setAlarmsBtn" onclick="setAlarms()">⏰ &nbsp;Set All Alarms Now</button>
+  <div id="alarmStatus"></div>
+  <div class="tip-box">💡 Keep this page open for alarms to work. Alarms will speak the medicine name in your chosen language.</div>
+</div>
+
+<script>
+const FULL_TEXT = `{voice_text_escaped}`;
+const LANG = "{lang_tag}";
+const MEDS = {med_js_array};
+
+let currentUtterance = null;
+let alarmTimers = [];
+
+// ── Voice player ──────────────────────────────────────────────────────────
+function setStatus(dotClass, msg) {{
+  document.getElementById('pulseDot').className = 'pulse-dot ' + dotClass;
+  document.getElementById('statusText').textContent = msg;
+}}
+
+function getBestVoice(lang) {{
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v => v.lang === lang)
+      || voices.find(v => v.lang.startsWith(lang.split('-')[0]))
+      || null;
+}}
+
+function speak(text, rate, onEnd) {{
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = LANG;
+  u.rate = rate || 0.7;
+  const v = getBestVoice(LANG);
+  if (v) u.voice = v;
+  if (onEnd) u.onend = onEnd;
+  u.onerror = e => setStatus('', '⚠️ Voice error: ' + e.error);
+  currentUtterance = u;
+  window.speechSynthesis.speak(u);
+}}
+
+function startSpeech() {{
+  const rate = parseFloat(document.getElementById('speedSlider').value);
+  setStatus('speaking', 'Speaking all medicines... You can press PAUSE anytime.');
+  speak(FULL_TEXT, rate, () => setStatus('', '✅ Finished! Press ▶ PLAY again to replay.'));
+}}
+
+function togglePause() {{
+  if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {{
+    window.speechSynthesis.pause();
+    setStatus('paused', 'Paused. Press PAUSE button again to continue.');
+    document.getElementById('pauseBtn').innerHTML = '▶&nbsp; RESUME';
+  }} else if (window.speechSynthesis.paused) {{
+    window.speechSynthesis.resume();
+    setStatus('speaking', 'Resumed...');
+    document.getElementById('pauseBtn').innerHTML = '⏸&nbsp; PAUSE';
+  }}
+}}
+
+function stopSpeech() {{
+  window.speechSynthesis.cancel();
+  document.getElementById('pauseBtn').innerHTML = '⏸&nbsp; PAUSE';
+  setStatus('', 'Stopped. Press ▶ PLAY to start again from the beginning.');
+}}
+
+// ── Per-medicine cards ────────────────────────────────────────────────────
+function buildMedCards() {{
+  const grid = document.getElementById('medGrid');
+  if (!MEDS.length) {{
+    grid.innerHTML = '<p style="color:#6080a0">No medicines found in analysis.</p>';
+    return;
+  }}
+  MEDS.forEach((m, i) => {{
+    const card = document.createElement('div');
+    card.className = 'med-card';
+    card.innerHTML = `
+      <div class="med-name">💊 ${{m.name}}</div>
+      <div class="med-detail">📏 Dose: <strong>${{m.dose || '—'}}</strong></div>
+      <div class="med-detail">🕐 When: <strong>${{m.freq || '—'}}</strong></div>
+      <button class="med-play-btn" onclick="playMed(${{i}})">
+        🔊 &nbsp;Listen to This Medicine
+      </button>
+    `;
+    grid.appendChild(card);
+  }});
+}}
+
+function playMed(i) {{
+  const rate = parseFloat(document.getElementById('speedSlider').value);
+  const m = MEDS[i];
+  setStatus('speaking', 'Playing: ' + m.name);
+  speak(m.script, rate, () => setStatus('', '✅ Done. Choose another medicine or press ▶ PLAY for all.'));
+}}
+
+// ── Alarm setter ──────────────────────────────────────────────────────────
+function buildAlarmGrid() {{
+  const grid = document.getElementById('alarmGrid');
+  if (!MEDS.length) {{
+    grid.innerHTML = '<p style="color:#9966cc">No medicines to set alarms for.</p>';
+    return;
+  }}
+  MEDS.forEach((m, i) => {{
+    const row = document.createElement('div');
+    row.className = 'alarm-row';
+    row.innerHTML = `
+      <div class="alarm-name">💊 ${{m.name}}</div>
+      <input type="time" id="alarm_${{i}}" value="">
+    `;
+    grid.appendChild(row);
+  }});
+}}
+
+function setAlarms() {{
+  // Clear old alarms
+  alarmTimers.forEach(t => clearTimeout(t));
+  alarmTimers = [];
+  let count = 0;
+
+  MEDS.forEach((m, i) => {{
+    const timeEl = document.getElementById('alarm_' + i);
+    if (!timeEl || !timeEl.value) return;
+    const [hh, mm] = timeEl.value.split(':').map(Number);
+    const now = new Date();
+    const alarm = new Date();
+    alarm.setHours(hh, mm, 0, 0);
+    if (alarm <= now) alarm.setDate(alarm.getDate() + 1); // next day
+    const delay = alarm - now;
+    const timer = setTimeout(() => {{
+      // Ring using speech
+      const msg = `Time to take your medicine: ${{m.name}}. Dose: ${{m.dose}}. ${{m.script}}`;
+      speak(msg, 0.75);
+      // Visual alert
+      document.getElementById('alarmStatus').textContent =
+        '🔔 ALARM: Time for ' + m.name + '!';
+      // Also try Notification API
+      if (Notification && Notification.permission === 'granted') {{
+        new Notification('💊 Medicine Time!', {{
+          body: 'Time to take: ' + m.name + ' — ' + m.dose,
+          icon: ''
+        }});
+      }}
+    }}, delay);
+    alarmTimers.push(timer);
+    count++;
+  }});
+
+  // Request notification permission
+  if (Notification && Notification.permission === 'default') {{
+    Notification.requestPermission();
+  }}
+
+  if (count > 0) {{
+    document.getElementById('alarmStatus').textContent =
+      '✅ ' + count + ' alarm(s) set! This page will speak your medicine name at the right time.';
+  }} else {{
+    document.getElementById('alarmStatus').textContent =
+      '⚠️ Please pick a time for at least one medicine above.';
+  }}
+}}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+window.speechSynthesis.onvoiceschanged = () => {{ window.speechSynthesis.getVoices(); }};
+buildMedCards();
+buildAlarmGrid();
+</script>
+</body>
+</html>
+""", height=980, scrolling=True)
+
 
 # ─── Footer ──────────────────────────────────────────────────────────────────
 st.markdown("""
