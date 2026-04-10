@@ -262,39 +262,48 @@ else:
 
 _hero_components.html(f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{{margin:0;padding:0;box-sizing:border-box}}
-body{{background:#000;overflow:hidden}}
+html,body{{width:100%;height:100%;background:transparent;overflow:hidden}}
 .hero{{
   position:relative;width:100%;height:380px;
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
-  {"background:#000;" if _vsrc else
-   "background:linear-gradient(135deg,#0a0a1a 0%,#0d1f2d 30%,#0a0a1a 60%,#141428 100%);background-size:400% 400%;animation:gradMove 8s ease infinite;"}
+  background:linear-gradient(135deg,#0a0a1a 0%,#0d1f2d 30%,#0a0a1a 60%,#141428 100%);
+  background-size:400% 400%;
+  animation:gradMove 8s ease infinite;
 }}
 @keyframes gradMove{{0%{{background-position:0% 50%}}50%{{background-position:100% 50%}}100%{{background-position:0% 50%}}}}
-.overlay{{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.7) 100%);z-index:1}}
-.content{{position:relative;z-index:2;text-align:center;color:#fff;font-family:Georgia,serif;padding:20px}}
+video.bgvid{{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  min-width:100%;min-height:100%;
+  width:auto;height:auto;
+  object-fit:cover;z-index:1;opacity:0.7;
+}}
+.overlay{{position:absolute;inset:0;z-index:2;background:linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.65) 100%)}}
+.content{{position:relative;z-index:3;text-align:center;color:#fff;font-family:Georgia,serif;padding:20px}}
 .logo{{font-size:clamp(2rem,6vw,3.6rem);font-style:italic;font-weight:700;
-       color:#e8e0d0;text-shadow:0 2px 24px rgba(0,0,0,0.9);letter-spacing:-0.01em}}
+       color:#e8e0d0;text-shadow:0 2px 24px rgba(0,0,0,0.9)}}
 .ai{{font-size:0.52em;font-style:normal;font-weight:300;letter-spacing:.18em;vertical-align:super;color:#b0a898}}
 .sub{{margin-top:10px;font-size:clamp(0.6rem,1.6vw,0.8rem);letter-spacing:.25em;
       font-family:'Helvetica Neue',sans-serif;font-weight:300;color:#908878;text-transform:uppercase}}
 .tag{{margin-top:14px;font-size:clamp(0.85rem,2.2vw,1.2rem);font-style:italic;
       color:#c0b8a8;text-shadow:0 1px 10px rgba(0,0,0,0.7)}}
-/* pulsing star particles for fallback */
-.star{{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0}}
-@keyframes twinkle{{0%,100%{{opacity:0;transform:scale(0.5)}}50%{{opacity:var(--o,0.6);transform:scale(1)}}}}
+.star{{position:absolute;border-radius:50%;background:#fff;
+       animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0;z-index:1}}
+@keyframes twinkle{{0%,100%{{opacity:0}}50%{{opacity:var(--o,.5)}}}}
 </style></head><body>
-<div class="hero">
-  {_video_html}
-  {"" if _vsrc else "".join([
-    f'<div class="star" style="width:{s}px;height:{s}px;top:{t}%;left:{l}%;--d:{d}s;--o:{o};animation-delay:{dl}s"></div>'
-    for s,t,l,d,o,dl in [
-      (2,15,20,2.5,0.7,0),(1,30,70,3.2,0.5,0.8),(2,55,45,2.8,0.8,0.3),
-      (1,20,85,3.5,0.4,1.2),(2,70,15,2.2,0.9,0.5),(1,40,55,3.8,0.6,1.8),
-      (2,80,80,2.6,0.7,0.9),(1,10,40,3.1,0.5,0.2),(2,60,30,2.9,0.8,1.5),
-      (1,85,60,3.4,0.4,0.7),(2,25,92,2.3,0.9,1.1),(1,50,8,3.6,0.6,0.4),
-    ]
-  ])}
+<div class="hero" id="hero">
+  {"" if not _vsrc else f'<video class="bgvid" id="hv" autoplay muted loop playsinline webkit-playsinline preload="auto"><source src="{_vsrc}" type="video/mp4"></video>'}
+  <div class="star" style="width:2px;height:2px;top:15%;left:20%;--d:2.5s;--o:.7;animation-delay:0s"></div>
+  <div class="star" style="width:1px;height:1px;top:30%;left:70%;--d:3.2s;--o:.5;animation-delay:.8s"></div>
+  <div class="star" style="width:2px;height:2px;top:55%;left:45%;--d:2.8s;--o:.8;animation-delay:.3s"></div>
+  <div class="star" style="width:1px;height:1px;top:20%;left:85%;--d:3.5s;--o:.4;animation-delay:1.2s"></div>
+  <div class="star" style="width:2px;height:2px;top:70%;left:15%;--d:2.2s;--o:.9;animation-delay:.5s"></div>
+  <div class="star" style="width:1px;height:1px;top:40%;left:55%;--d:3.8s;--o:.6;animation-delay:1.8s"></div>
+  <div class="star" style="width:2px;height:2px;top:80%;left:80%;--d:2.6s;--o:.7;animation-delay:.9s"></div>
+  <div class="star" style="width:1px;height:1px;top:10%;left:40%;--d:3.1s;--o:.5;animation-delay:.2s"></div>
+  <div class="star" style="width:2px;height:2px;top:60%;left:30%;--d:2.9s;--o:.8;animation-delay:1.5s"></div>
+  <div class="star" style="width:2px;height:2px;top:25%;left:92%;--d:2.3s;--o:.9;animation-delay:1.1s"></div>
   <div class="overlay"></div>
   <div class="content">
     <div class="logo">⚕ MediSight<span class="ai"> AI</span></div>
@@ -306,11 +315,20 @@ body{{background:#000;overflow:hidden}}
 (function(){{
   var v=document.getElementById("hv");
   if(!v)return;
-  function p(){{v.muted=true;var r=v.play();if(r&&r.catch)r.catch(function(){{}});}}
+  function p(){{
+    v.muted=true;
+    var r=v.play();
+    if(r&&r.catch)r.catch(function(){{}});
+  }}
+  // Try immediately
   p();
-  document.addEventListener("DOMContentLoaded",p);
-  document.addEventListener("touchstart",p,{{once:true}});
+  // Try after load
+  window.addEventListener("load",p);
+  // iOS/Android: on first interaction
+  document.addEventListener("touchstart",p,{{once:true,passive:true}});
   document.addEventListener("click",p,{{once:true}});
+  // If video fails entirely, hide it — gradient still shows
+  v.addEventListener("error",function(){{v.style.display="none";}});
 }})();
 </script>
 </body></html>""", height=390, scrolling=False)
