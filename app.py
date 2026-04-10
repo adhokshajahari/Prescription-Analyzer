@@ -238,93 +238,26 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-import streamlit.components.v1 as _components
-
-_hero_css = ""
-if css_path.exists():
-    with open(css_path, encoding="utf-8") as _f:
-        _hero_css = _f.read()
-
-_components.html(f"""<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-{_hero_css}
-html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
-
-/* YouTube iframe as background */
-.yt-bg {{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}}
-.yt-bg iframe {{
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100vw;
-  height: 56.25vw;   /* 16:9 ratio */
-  min-height: 100%;
-  min-width: 177.78vh; /* 16:9 ratio */
-  transform: translate(-50%, -50%);
-  border: none;
-  filter: grayscale(60%) brightness(0.52) contrast(1.12);
-  -webkit-filter: grayscale(60%) brightness(0.52) contrast(1.12);
-}}
-</style>
-</head>
-<body>
+st.markdown("""
 <div class="hero-header">
 
-  <!-- YouTube background -->
-  <div class="yt-bg">
-    <iframe
-      id="ytFrame"
-      src="https://www.youtube.com/embed/7481EEJ9DVU?autoplay=1&mute=1&loop=1&playlist=7481EEJ9DVU&controls=0&showinfo=0&rel=0&disablekb=1&modestbranding=1&playsinline=1&enablejsapi=1"
-      allow="autoplay; fullscreen"
-      allowfullscreen
-    ></iframe>
-  </div>
+  <!-- Background video -->
+  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline x5-playsinline preload="auto">
+    <source src="app/static/hero_bg.mp4" type="video/mp4">
+  </video>
 
-  <!-- Invisible tap overlay — iOS needs a user gesture to start iframe video -->
-  <div id="tapOverlay" style="
-    position:absolute;inset:0;z-index:10;cursor:pointer;background:transparent;
-  " onclick="startVideo()" ontouchstart="startVideo()"></div>
-
-  <script>
-  function startVideo() {{
-    var overlay = document.getElementById('tapOverlay');
-    var frame = document.getElementById('ytFrame');
-    // Re-set src with autoplay to force play after user gesture
-    frame.src = frame.src.replace('autoplay=0','autoplay=1');
-    // Post play command via YouTube API
-    frame.contentWindow.postMessage('{{"event":"command","func":"playVideo","args":""}}', '*');
-    // Hide overlay after first tap so user can interact normally
-    setTimeout(function() {{ overlay.style.display='none'; }}, 1500);
-  }}
-
-  // Auto-hide overlay on desktop where autoplay works
-  window.addEventListener('load', function() {{
-    setTimeout(function() {{
-      document.getElementById('tapOverlay').style.display = 'none';
-    }}, 3000);
-  }});
-  </script>
-
+  <!-- Dark overlay: video → black transition -->
   <div class="hero-overlay"></div>
+
+  <!-- Content sits above video -->
   <div class="hero-content">
     <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
     <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
     <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
   </div>
+
 </div>
-</body>
-</html>""", height=480, scrolling=False)
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <div class="disclaimer-banner">
@@ -347,7 +280,6 @@ with col_input:
     with tab_file:
         st.info("📌 Supports PNG, JPG, WEBP prescription scans. For PDFs, use the Paste Text tab.")
 
-        # ── Mobile-friendly: two clear options ──────────────────────────────
         mobile_col1, mobile_col2 = st.columns(2)
 
         with mobile_col1:
@@ -368,19 +300,15 @@ with col_input:
                 key="camera_input",
             )
 
-        # ── Process whichever source was used ───────────────────────────────
-        active_file = camera_image or uploaded  # camera takes priority if both used
+        active_file = camera_image or uploaded
 
         if active_file:
             file_bytes = active_file.read()
             b64 = base64.standard_b64encode(file_bytes).decode()
-
-            # st.camera_input always returns JPEG; st.file_uploader has a .type attr
             if hasattr(active_file, "type") and active_file.type:
                 ftype = active_file.type
             else:
-                ftype = "image/jpeg"  # camera_input default
-
+                ftype = "image/jpeg"
             if ftype.startswith("image/"):
                 st.session_state.uploaded_file_data = b64
                 st.session_state.uploaded_file_type = ftype
