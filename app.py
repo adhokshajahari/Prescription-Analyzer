@@ -284,11 +284,37 @@ html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
   <!-- YouTube background -->
   <div class="yt-bg">
     <iframe
-      src="https://www.youtube.com/embed/7481EEJ9DVU?autoplay=1&mute=1&loop=1&playlist=7481EEJ9DVU&controls=0&showinfo=0&rel=0&disablekb=1&modestbranding=1&playsinline=1"
+      id="ytFrame"
+      src="https://www.youtube.com/embed/7481EEJ9DVU?autoplay=1&mute=1&loop=1&playlist=7481EEJ9DVU&controls=0&showinfo=0&rel=0&disablekb=1&modestbranding=1&playsinline=1&enablejsapi=1"
       allow="autoplay; fullscreen"
       allowfullscreen
     ></iframe>
   </div>
+
+  <!-- Invisible tap overlay — iOS needs a user gesture to start iframe video -->
+  <div id="tapOverlay" style="
+    position:absolute;inset:0;z-index:10;cursor:pointer;background:transparent;
+  " onclick="startVideo()" ontouchstart="startVideo()"></div>
+
+  <script>
+  function startVideo() {{
+    var overlay = document.getElementById('tapOverlay');
+    var frame = document.getElementById('ytFrame');
+    // Re-set src with autoplay to force play after user gesture
+    frame.src = frame.src.replace('autoplay=0','autoplay=1');
+    // Post play command via YouTube API
+    frame.contentWindow.postMessage('{{"event":"command","func":"playVideo","args":""}}', '*');
+    // Hide overlay after first tap so user can interact normally
+    setTimeout(function() {{ overlay.style.display='none'; }}, 1500);
+  }}
+
+  // Auto-hide overlay on desktop where autoplay works
+  window.addEventListener('load', function() {{
+    setTimeout(function() {{
+      document.getElementById('tapOverlay').style.display = 'none';
+    }}, 3000);
+  }});
+  </script>
 
   <div class="hero-overlay"></div>
   <div class="hero-content">
