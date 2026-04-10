@@ -315,19 +315,28 @@ video.bgvid{{
 (function(){{
   var v=document.getElementById("hv");
   if(!v)return;
+
+  // Detect iOS — Safari on iPhone/iPad blocks autoplay in iframes entirely
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  if(isIOS){{
+    // iOS: hide video, let the gradient+stars show
+    v.style.display="none";
+    return;
+  }}
+
+  // Laptop + Android: play the video
   function p(){{
     v.muted=true;
     var r=v.play();
     if(r&&r.catch)r.catch(function(){{}});
   }}
-  // Try immediately
   p();
-  // Try after load
   window.addEventListener("load",p);
-  // iOS/Android: on first interaction
+  // Android Chrome sometimes needs a user gesture first
   document.addEventListener("touchstart",p,{{once:true,passive:true}});
   document.addEventListener("click",p,{{once:true}});
-  // If video fails entirely, hide it — gradient still shows
+  // If video errors for any reason, hide it — gradient still shows
   v.addEventListener("error",function(){{v.style.display="none";}});
 }})();
 </script>
