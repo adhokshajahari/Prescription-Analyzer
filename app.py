@@ -240,9 +240,22 @@ def confidence_badge(confidence):
 # ─── Hero Header ─────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero-header">
-  <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
-  <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
-  <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
+
+  <!-- Background video -->
+  <video class="hero-video" autoplay muted loop playsinline preload="auto">
+    <source src="https://wpriverthemes.com/aixor/wp-content/uploads/2024/09/shutterstock_1097392395-vmake-4.mp4" type="video/mp4">
+  </video>
+
+  <!-- Dark overlay: video → black transition -->
+  <div class="hero-overlay"></div>
+
+  <!-- Content sits above video -->
+  <div class="hero-content">
+    <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
+    <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
+    <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
+  </div>
+
 </div>
 """, unsafe_allow_html=True)
 
@@ -713,6 +726,7 @@ if st.session_state.analysis_result:
     background: transparent;
     color: #ffffff;
   }}
+
   /* ── Main player card ── */
   .player-card {{
     background: linear-gradient(145deg, #0b1a3a, #152850);
@@ -730,8 +744,54 @@ if st.session_state.analysis_result:
   .player-sub {{
     font-size: 1rem;
     color: #90a8c8;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.4rem;
   }}
+
+  /* ── Voice selector row ── */
+  .voice-selector-row {{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 0.9rem 1.4rem;
+    margin-bottom: 1.3rem;
+    flex-wrap: wrap;
+  }}
+  .voice-selector-label {{
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #a0c4ff;
+    white-space: nowrap;
+  }}
+  #voiceSelect {{
+    background: #0e2a50;
+    color: #ddeeff;
+    border: 1.5px solid #2a5aa8;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    min-width: 220px;
+    appearance: auto;
+  }}
+  #voiceSelect:focus {{ outline: 2px solid #3a9bd5; }}
+  #voicePreviewBtn {{
+    background: linear-gradient(135deg, #1a5fa8, #0e3d70);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.55rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }}
+  #voicePreviewBtn:hover {{ background: linear-gradient(135deg, #2070c0, #1a5090); }}
+
   /* ── Big control buttons ── */
   .big-controls {{
     display: flex;
@@ -772,6 +832,7 @@ if st.session_state.analysis_result:
     box-shadow: 0 4px 18px #7a1a1a40;
   }}
   #stopBtn:hover {{ background: linear-gradient(135deg, #9a2020, #7a1a1a); }}
+
   /* ── Speed control ── */
   .speed-section {{
     display: flex;
@@ -796,6 +857,7 @@ if st.session_state.analysis_result:
     color: #ffffff;
     min-width: 50px;
   }}
+
   /* ── Status bar ── */
   .status-bar {{
     background: rgba(255,255,255,0.06);
@@ -870,7 +932,7 @@ if st.session_state.analysis_result:
     border: 2.5px solid #6633cc;
     border-radius: 22px;
     padding: 1.8rem 2rem;
-    margin-top: 1.5rem;
+    margin-top: 2rem;
   }}
   .alarm-title {{
     font-size: 1.4rem;
@@ -944,10 +1006,19 @@ if st.session_state.analysis_result:
 <!-- ── BIG VOICE PLAYER ── -->
 <div class="player-card">
   <div class="player-title">🔊 Medicine Voice Player</div>
-  <div class="player-sub">Language: <strong style="color:#aaddff">{lang_label}</strong> &nbsp;·&nbsp; Press the big green button to listen</div>
+  <div class="player-sub">Language: <strong style="color:#aaddff">{lang_label}</strong> &nbsp;·&nbsp; Choose a voice below, then press PLAY</div>
+
+  <!-- ── Voice Dropdown ── -->
+  <div class="voice-selector-row">
+    <span class="voice-selector-label">🎙️ Choose Voice:</span>
+    <select id="voiceSelect">
+      <option value="">⏳ Loading voices...</option>
+    </select>
+    <button id="voicePreviewBtn" onclick="previewVoice()">▶ Preview Voice</button>
+  </div>
 
   <div class="big-controls">
-    <button class="big-btn" id="playBtn" onclick="startSpeech()">▶&nbsp; PLAY</button>
+    <button class="big-btn" id="playBtn" onclick="startSpeech()">▶&nbsp; PLAY ALL</button>
     <button class="big-btn" id="pauseBtn" onclick="togglePause()">⏸&nbsp; PAUSE</button>
     <button class="big-btn" id="stopBtn" onclick="stopSpeech()">⏹&nbsp; STOP</button>
   </div>
@@ -962,7 +1033,7 @@ if st.session_state.analysis_result:
 
   <div class="status-bar">
     <div class="pulse-dot" id="pulseDot"></div>
-    <span id="statusText">Ready. Press ▶ PLAY to hear all your medicines.</span>
+    <span id="statusText">Select a voice above, then press ▶ PLAY ALL to hear your medicines.</span>
   </div>
 </div>
 
@@ -970,14 +1041,14 @@ if st.session_state.analysis_result:
 <div class="med-section-title">💊 Listen to Each Medicine One by One</div>
 <div class="med-grid" id="medGrid"></div>
 
-<!-- ── MEDICINE ALARM SETTER ── -->
+<!-- ── MEDICINE ALARM SETTER (at the bottom) ── -->
 <div class="alarm-card">
   <div class="alarm-title">⏰ Set Medicine Reminder Alarms</div>
-  <div class="alarm-sub">Set a time for each medicine. Your device will beep and speak the medicine name when it is time to take it.</div>
+  <div class="alarm-sub">Set a time for each medicine. Your device will speak the medicine name when it is time to take it.</div>
   <div class="alarm-grid" id="alarmGrid"></div>
   <button id="setAlarmsBtn" onclick="setAlarms()">⏰ &nbsp;Set All Alarms Now</button>
   <div id="alarmStatus"></div>
-  <div class="tip-box">💡 Keep this page open for alarms to work. Alarms will speak the medicine name in your chosen language.</div>
+  <div class="tip-box">💡 Keep this page open for alarms to work. Alarms will speak the medicine name in your chosen language using your selected voice.</div>
 </div>
 
 <script>
@@ -987,6 +1058,82 @@ const MEDS = {med_js_array};
 
 let currentUtterance = null;
 let alarmTimers = [];
+let allVoices = [];
+let selectedVoice = null;
+
+// ── Voice loader & dropdown ──────────────────────────────────────────────
+function populateVoiceDropdown() {{
+  allVoices = window.speechSynthesis.getVoices();
+  if (!allVoices.length) return;
+
+  const sel = document.getElementById('voiceSelect');
+  sel.innerHTML = '';
+
+  // Preferred: voices matching the chosen language
+  const langCode = LANG.split('-')[0];
+  const matching = allVoices.filter(v => v.lang === LANG || v.lang.startsWith(langCode));
+  const others   = allVoices.filter(v => v.lang !== LANG && !v.lang.startsWith(langCode));
+
+  if (matching.length) {{
+    const grp1 = document.createElement('optgroup');
+    grp1.label = '✅ Best match for ' + LANG;
+    matching.forEach((v, i) => {{
+      const opt = document.createElement('option');
+      opt.value = 'match_' + i;
+      opt.textContent = v.name + ' (' + v.lang + ')' + (v.localService ? ' 📱' : ' ☁️');
+      grp1.appendChild(opt);
+    }});
+    sel.appendChild(grp1);
+  }}
+
+  if (others.length) {{
+    const grp2 = document.createElement('optgroup');
+    grp2.label = '🌐 Other available voices';
+    others.forEach((v, i) => {{
+      const opt = document.createElement('option');
+      opt.value = 'other_' + i;
+      opt.textContent = v.name + ' (' + v.lang + ')' + (v.localService ? ' 📱' : ' ☁️');
+      grp2.appendChild(opt);
+    }});
+    sel.appendChild(grp2);
+  }}
+
+  if (!allVoices.length) {{
+    sel.innerHTML = '<option value="">⚠️ No voices found on this device</option>';
+  }}
+
+  // Default select first matching voice
+  sel.selectedIndex = 0;
+  updateSelectedVoice();
+  setStatus('', 'Voice ready. Press ▶ PLAY ALL to hear your medicines.');
+}}
+
+function updateSelectedVoice() {{
+  const sel = document.getElementById('voiceSelect');
+  const val = sel.value;
+  if (!val) {{ selectedVoice = null; return; }}
+  if (val.startsWith('match_')) {{
+    const idx = parseInt(val.split('_')[1]);
+    const langCode = LANG.split('-')[0];
+    const matching = allVoices.filter(v => v.lang === LANG || v.lang.startsWith(langCode));
+    selectedVoice = matching[idx] || null;
+  }} else {{
+    const idx = parseInt(val.split('_')[1]);
+    const langCode = LANG.split('-')[0];
+    const others = allVoices.filter(v => v.lang !== LANG && !v.lang.startsWith(langCode));
+    selectedVoice = others[idx] || null;
+  }}
+}}
+
+document.addEventListener('DOMContentLoaded', () => {{
+  document.getElementById('voiceSelect').addEventListener('change', updateSelectedVoice);
+}});
+
+function previewVoice() {{
+  updateSelectedVoice();
+  const rate = parseFloat(document.getElementById('speedSlider').value);
+  speakWith('Hello. This is a voice preview. I will read your medicines in this voice.', rate, null);
+}}
 
 // ── Voice player ──────────────────────────────────────────────────────────
 function setStatus(dotClass, msg) {{
@@ -994,20 +1141,12 @@ function setStatus(dotClass, msg) {{
   document.getElementById('statusText').textContent = msg;
 }}
 
-function getBestVoice(lang) {{
-  const voices = window.speechSynthesis.getVoices();
-  return voices.find(v => v.lang === lang)
-      || voices.find(v => v.lang.startsWith(lang.split('-')[0]))
-      || null;
-}}
-
-function speak(text, rate, onEnd) {{
+function speakWith(text, rate, onEnd) {{
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = LANG;
   u.rate = rate || 0.7;
-  const v = getBestVoice(LANG);
-  if (v) u.voice = v;
+  if (selectedVoice) u.voice = selectedVoice;
   if (onEnd) u.onend = onEnd;
   u.onerror = e => setStatus('', '⚠️ Voice error: ' + e.error);
   currentUtterance = u;
@@ -1015,9 +1154,10 @@ function speak(text, rate, onEnd) {{
 }}
 
 function startSpeech() {{
+  updateSelectedVoice();
   const rate = parseFloat(document.getElementById('speedSlider').value);
   setStatus('speaking', 'Speaking all medicines... You can press PAUSE anytime.');
-  speak(FULL_TEXT, rate, () => setStatus('', '✅ Finished! Press ▶ PLAY again to replay.'));
+  speakWith(FULL_TEXT, rate, () => setStatus('', '✅ Finished! Press ▶ PLAY ALL again to replay.'));
 }}
 
 function togglePause() {{
@@ -1035,7 +1175,7 @@ function togglePause() {{
 function stopSpeech() {{
   window.speechSynthesis.cancel();
   document.getElementById('pauseBtn').innerHTML = '⏸&nbsp; PAUSE';
-  setStatus('', 'Stopped. Press ▶ PLAY to start again from the beginning.');
+  setStatus('', 'Stopped. Press ▶ PLAY ALL to start again from the beginning.');
 }}
 
 // ── Per-medicine cards ────────────────────────────────────────────────────
@@ -1061,10 +1201,11 @@ function buildMedCards() {{
 }}
 
 function playMed(i) {{
+  updateSelectedVoice();
   const rate = parseFloat(document.getElementById('speedSlider').value);
   const m = MEDS[i];
   setStatus('speaking', 'Playing: ' + m.name);
-  speak(m.script, rate, () => setStatus('', '✅ Done. Choose another medicine or press ▶ PLAY for all.'));
+  speakWith(m.script, rate, () => setStatus('', '✅ Done. Choose another medicine or press ▶ PLAY ALL for all.'));
 }}
 
 // ── Alarm setter ──────────────────────────────────────────────────────────
@@ -1086,7 +1227,6 @@ function buildAlarmGrid() {{
 }}
 
 function setAlarms() {{
-  // Clear old alarms
   alarmTimers.forEach(t => clearTimeout(t));
   alarmTimers = [];
   let count = 0;
@@ -1098,16 +1238,12 @@ function setAlarms() {{
     const now = new Date();
     const alarm = new Date();
     alarm.setHours(hh, mm, 0, 0);
-    if (alarm <= now) alarm.setDate(alarm.getDate() + 1); // next day
+    if (alarm <= now) alarm.setDate(alarm.getDate() + 1);
     const delay = alarm - now;
     const timer = setTimeout(() => {{
-      // Ring using speech
       const msg = `Time to take your medicine: ${{m.name}}. Dose: ${{m.dose}}. ${{m.script}}`;
-      speak(msg, 0.75);
-      // Visual alert
-      document.getElementById('alarmStatus').textContent =
-        '🔔 ALARM: Time for ' + m.name + '!';
-      // Also try Notification API
+      speakWith(msg, 0.75, null);
+      document.getElementById('alarmStatus').textContent = '🔔 ALARM: Time for ' + m.name + '!';
       if (Notification && Notification.permission === 'granted') {{
         new Notification('💊 Medicine Time!', {{
           body: 'Time to take: ' + m.name + ' — ' + m.dose,
@@ -1119,7 +1255,6 @@ function setAlarms() {{
     count++;
   }});
 
-  // Request notification permission
   if (Notification && Notification.permission === 'default') {{
     Notification.requestPermission();
   }}
@@ -1134,13 +1269,16 @@ function setAlarms() {{
 }}
 
 // ── Init ──────────────────────────────────────────────────────────────────
-window.speechSynthesis.onvoiceschanged = () => {{ window.speechSynthesis.getVoices(); }};
+window.speechSynthesis.onvoiceschanged = populateVoiceDropdown;
+// Also try immediately in case voices are already loaded
+if (window.speechSynthesis.getVoices().length > 0) populateVoiceDropdown();
+
 buildMedCards();
 buildAlarmGrid();
 </script>
 </body>
 </html>
-""", height=980, scrolling=True)
+""", height=1080, scrolling=True)
 
 
 # ─── Footer ──────────────────────────────────────────────────────────────────
