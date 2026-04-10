@@ -100,10 +100,15 @@ html, body, [data-testid="stAppViewContainer"],
   width: 100%;
   height: 100%;
   object-fit: cover;
+  -o-object-fit: cover;          /* Opera fallback */
   object-position: center 30%;
   /* Desaturate: keeps the monochrome dark-luxury palette */
   filter: grayscale(60%) brightness(0.52) contrast(1.12);
+  -webkit-filter: grayscale(60%) brightness(0.52) contrast(1.12); /* Safari */
   z-index: 0;
+  pointer-events: none;          /* Prevents tap-to-pause on iOS */
+  /* iOS Safari requires these to allow autoplay */
+  -webkit-playsinline: true;
 }
 
 /* ── Multi-layer overlay ────────────────────────────────────────────
