@@ -238,13 +238,28 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-st.markdown("""
+# ─── Load hero video as base64 for reliable cross-platform playback ───────────
+_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
+# Also check the app/static/ subfolder (Streamlit Cloud layout)
+if not _video_path.exists():
+    _video_path = Path(__file__).parent / "app" / "static" / "hero_bg.mp4"
+
+_video_tag = ""
+if _video_path.exists():
+    with open(_video_path, "rb") as _vf:
+        _video_b64 = base64.b64encode(_vf.read()).decode()
+    _video_tag = (
+        f'<video class="hero-video" autoplay muted loop playsinline '
+        f'webkit-playsinline x5-playsinline preload="auto" id="heroVideo">'
+        f'<source src="data:video/mp4;base64,{_video_b64}" type="video/mp4">'
+        f'</video>'
+    )
+
+st.markdown(f"""
 <div class="hero-header">
 
-  <!-- Background video -->
-  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline x5-playsinline preload="auto">
-    <source src="app/static/hero_bg.mp4" type="video/mp4">
-  </video>
+  <!-- Background video (base64-embedded for reliable playback) -->
+  {_video_tag}
 
   <!-- Dark overlay: video → black transition -->
   <div class="hero-overlay"></div>
@@ -257,6 +272,27 @@ st.markdown("""
   </div>
 
 </div>
+
+<script>
+  // Force autoplay on mobile browsers that block it
+  (function() {{
+    function tryPlay() {{
+      var v = document.getElementById('heroVideo');
+      if (v) {{
+        v.muted = true;
+        v.play().catch(function() {{}});
+      }}
+    }}
+    if (document.readyState === 'loading') {{
+      document.addEventListener('DOMContentLoaded', tryPlay);
+    }} else {{
+      tryPlay();
+    }}
+    // Also try on first user interaction (iOS Safari fallback)
+    document.addEventListener('touchstart', tryPlay, {{ once: true }});
+    document.addEventListener('click', tryPlay, {{ once: true }});
+  }})();
+</script>
 """, unsafe_allow_html=True)
 
 st.markdown("""
