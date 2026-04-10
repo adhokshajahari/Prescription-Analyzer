@@ -238,102 +238,82 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-# Use st.components.v1.html so <video> and <script> tags are NOT stripped
-import streamlit.components.v1 as _components
+# Strategy: try base64 embed via components.html (bypasses st.markdown sanitization)
+# Fallback: animated CSS gradient hero if video file not found
+import streamlit.components.v1 as _hero_components
 
-_hero_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
-if not _hero_video_path.exists():
-    _hero_video_path = Path(__file__).parent / "app" / "static" / "hero_bg.mp4"
+_vpath = Path(__file__).parent / "static" / "hero_bg.mp4"
+_vsrc = ""
+if _vpath.exists():
+    with open(_vpath, "rb") as _vf:
+        _vsrc = "data:video/mp4;base64," + base64.b64encode(_vf.read()).decode()
 
-_hero_video_src = ""
-if _hero_video_path.exists():
-    with open(_hero_video_path, "rb") as _vf:
-        _vb64 = base64.b64encode(_vf.read()).decode()
-    _hero_video_src = f"data:video/mp4;base64,{_vb64}"
+if _vsrc:
+    _video_html = f"""
+    <video id="hv" autoplay muted loop playsinline webkit-playsinline
+           preload="auto"
+           style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                  min-width:100%;min-height:100%;object-fit:cover;z-index:0;opacity:0.65;">
+      <source src="{_vsrc}" type="video/mp4">
+    </video>"""
+else:
+    # Animated gradient fallback — looks great, zero dependencies
+    _video_html = ""
 
-_video_element = (
-    f'''<video class="hero-video" id="heroVideo"
-      autoplay muted loop playsinline
-      webkit-playsinline x5-playsinline preload="auto">
-      <source src="{_hero_video_src}" type="video/mp4">
-    </video>'''
-    if _hero_video_src else ""
-)
-
-_components.html(f"""
-<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>
-* {{ margin:0; padding:0; box-sizing:border-box; }}
-body {{ background:#000; font-family: Georgia, serif; }}
-.hero-header {{
-  position:relative; width:100%; height:380px;
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden; background:#000;
+_hero_components.html(f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#000;overflow:hidden}}
+.hero{{
+  position:relative;width:100%;height:380px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  {"background:#000;" if _vsrc else
+   "background:linear-gradient(135deg,#0a0a1a 0%,#0d1f2d 30%,#0a0a1a 60%,#141428 100%);background-size:400% 400%;animation:gradMove 8s ease infinite;"}
 }}
-.hero-video {{
-  position:absolute; top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  min-width:100%; min-height:100%;
-  width:auto; height:auto;
-  object-fit:cover; z-index:0; opacity:0.7;
-}}
-.hero-overlay {{
-  position:absolute; inset:0;
-  background:linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%);
-  z-index:1;
-}}
-.hero-content {{
-  position:relative; z-index:2;
-  text-align:center; color:#fff; padding:20px;
-}}
-.hero-logo {{
-  font-size:clamp(2.2rem,6vw,3.8rem);
-  font-style:italic; font-weight:700;
-  color:#e8e0d0; text-shadow:0 2px 20px rgba(0,0,0,0.8);
-}}
-.hero-ai {{
-  font-size:0.55em; font-style:normal; font-weight:300;
-  letter-spacing:0.15em; vertical-align:super; color:#b0a898;
-}}
-.hero-sub {{
-  margin-top:10px;
-  font-size:clamp(0.65rem,1.8vw,0.82rem);
-  letter-spacing:0.25em;
-  font-family:'Helvetica Neue',sans-serif;
-  font-weight:300; color:#a09888; text-transform:uppercase;
-}}
-.hero-tagline {{
-  margin-top:14px;
-  font-size:clamp(0.9rem,2.5vw,1.25rem);
-  font-style:italic; color:#c8c0b0;
-  text-shadow:0 1px 8px rgba(0,0,0,0.6);
-}}
-</style>
-</head>
-<body>
-<div class="hero-header">
-  {_video_element}
-  <div class="hero-overlay"></div>
-  <div class="hero-content">
-    <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
-    <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
-    <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
+@keyframes gradMove{{0%{{background-position:0% 50%}}50%{{background-position:100% 50%}}100%{{background-position:0% 50%}}}}
+.overlay{{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.7) 100%);z-index:1}}
+.content{{position:relative;z-index:2;text-align:center;color:#fff;font-family:Georgia,serif;padding:20px}}
+.logo{{font-size:clamp(2rem,6vw,3.6rem);font-style:italic;font-weight:700;
+       color:#e8e0d0;text-shadow:0 2px 24px rgba(0,0,0,0.9);letter-spacing:-0.01em}}
+.ai{{font-size:0.52em;font-style:normal;font-weight:300;letter-spacing:.18em;vertical-align:super;color:#b0a898}}
+.sub{{margin-top:10px;font-size:clamp(0.6rem,1.6vw,0.8rem);letter-spacing:.25em;
+      font-family:'Helvetica Neue',sans-serif;font-weight:300;color:#908878;text-transform:uppercase}}
+.tag{{margin-top:14px;font-size:clamp(0.85rem,2.2vw,1.2rem);font-style:italic;
+      color:#c0b8a8;text-shadow:0 1px 10px rgba(0,0,0,0.7)}}
+/* pulsing star particles for fallback */
+.star{{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0}}
+@keyframes twinkle{{0%,100%{{opacity:0;transform:scale(0.5)}}50%{{opacity:var(--o,0.6);transform:scale(1)}}}}
+</style></head><body>
+<div class="hero">
+  {_video_html}
+  {"" if _vsrc else "".join([
+    f'<div class="star" style="width:{s}px;height:{s}px;top:{t}%;left:{l}%;--d:{d}s;--o:{o};animation-delay:{dl}s"></div>'
+    for s,t,l,d,o,dl in [
+      (2,15,20,2.5,0.7,0),(1,30,70,3.2,0.5,0.8),(2,55,45,2.8,0.8,0.3),
+      (1,20,85,3.5,0.4,1.2),(2,70,15,2.2,0.9,0.5),(1,40,55,3.8,0.6,1.8),
+      (2,80,80,2.6,0.7,0.9),(1,10,40,3.1,0.5,0.2),(2,60,30,2.9,0.8,1.5),
+      (1,85,60,3.4,0.4,0.7),(2,25,92,2.3,0.9,1.1),(1,50,8,3.6,0.6,0.4),
+    ]
+  ])}
+  <div class="overlay"></div>
+  <div class="content">
+    <div class="logo">⚕ MediSight<span class="ai"> AI</span></div>
+    <div class="sub">Prescription Intelligence Platform · Powered by Groq</div>
+    <div class="tag">Intelligence Meets Clinical Precision</div>
   </div>
 </div>
 <script>
-(function() {{
-  function tryPlay() {{
-    var v = document.getElementById('heroVideo');
-    if (v) {{ v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function(){{}}); }}
-  }}
-  tryPlay();
-  document.addEventListener('DOMContentLoaded', tryPlay);
-  document.addEventListener('touchstart', tryPlay, {{ once: true }});
-  document.addEventListener('click', tryPlay, {{ once: true }});
+(function(){{
+  var v=document.getElementById("hv");
+  if(!v)return;
+  function p(){{v.muted=true;var r=v.play();if(r&&r.catch)r.catch(function(){{}});}}
+  p();
+  document.addEventListener("DOMContentLoaded",p);
+  document.addEventListener("touchstart",p,{{once:true}});
+  document.addEventListener("click",p,{{once:true}});
 }})();
 </script>
-</body></html>
-""", height=395, scrolling=False)
+</body></html>""", height=390, scrolling=False)
 
 st.markdown("""
 <div class="disclaimer-banner">
