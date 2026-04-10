@@ -238,62 +238,61 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-# Strategy: try base64 embed via components.html (bypasses st.markdown sanitization)
-# Fallback: animated CSS gradient hero if video file not found
+# YouTube embed as background — most reliable cross-platform solution.
+# iOS gets gradient fallback (YouTube autoplay blocked in iOS Safari).
 import streamlit.components.v1 as _hero_components
 
-_vpath = Path(__file__).parent / "static" / "hero_bg.mp4"
-_vsrc = ""
-if _vpath.exists():
-    with open(_vpath, "rb") as _vf:
-        _vsrc = "data:video/mp4;base64," + base64.b64encode(_vf.read()).decode()
-
-if _vsrc:
-    _video_html = f"""
-    <video id="hv" autoplay muted loop playsinline webkit-playsinline
-           preload="auto"
-           style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-                  min-width:100%;min-height:100%;object-fit:cover;z-index:0;opacity:0.65;">
-      <source src="{_vsrc}" type="video/mp4">
-    </video>"""
-else:
-    # Animated gradient fallback — looks great, zero dependencies
-    _video_html = ""
-
-_hero_components.html(f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-html,body{{width:100%;height:100%;background:transparent;overflow:hidden}}
-.hero{{
-  position:relative;width:100%;height:380px;
+_hero_components.html("""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+.hero{
+  position:relative;width:100%;height:390px;
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
-  background:linear-gradient(135deg,#0a0a1a 0%,#0d1f2d 30%,#0a0a1a 60%,#141428 100%);
+  background:linear-gradient(135deg,#0a0a1a 0%,#0d1f2d 35%,#0a0a1a 65%,#141428 100%);
   background-size:400% 400%;
   animation:gradMove 8s ease infinite;
-}}
-@keyframes gradMove{{0%{{background-position:0% 50%}}50%{{background-position:100% 50%}}100%{{background-position:0% 50%}}}}
-video.bgvid{{
-  position:absolute;top:50%;left:50%;
+}
+@keyframes gradMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#yt-wrap{
+  position:absolute;
+  top:50%;left:50%;
   transform:translate(-50%,-50%);
-  min-width:100%;min-height:100%;
-  width:auto;height:auto;
-  object-fit:cover;z-index:1;opacity:0.7;
-}}
-.overlay{{position:absolute;inset:0;z-index:2;background:linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.65) 100%)}}
-.content{{position:relative;z-index:3;text-align:center;color:#fff;font-family:Georgia,serif;padding:20px}}
-.logo{{font-size:clamp(2rem,6vw,3.6rem);font-style:italic;font-weight:700;
-       color:#e8e0d0;text-shadow:0 2px 24px rgba(0,0,0,0.9)}}
-.ai{{font-size:0.52em;font-style:normal;font-weight:300;letter-spacing:.18em;vertical-align:super;color:#b0a898}}
-.sub{{margin-top:10px;font-size:clamp(0.6rem,1.6vw,0.8rem);letter-spacing:.25em;
-      font-family:'Helvetica Neue',sans-serif;font-weight:300;color:#908878;text-transform:uppercase}}
-.tag{{margin-top:14px;font-size:clamp(0.85rem,2.2vw,1.2rem);font-style:italic;
-      color:#c0b8a8;text-shadow:0 1px 10px rgba(0,0,0,0.7)}}
-.star{{position:absolute;border-radius:50%;background:#fff;
-       animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0;z-index:1}}
-@keyframes twinkle{{0%,100%{{opacity:0}}50%{{opacity:var(--o,.5)}}}}
+  /* oversized so YouTube letterbox is hidden */
+  width:120%;height:120%;
+  min-width:120%;min-height:120%;
+  pointer-events:none;
+  z-index:1;
+  display:none;
+}
+#yt-wrap iframe{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:100%;height:100%;
+  border:none;
+}
+.overlay{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.7) 100%);
+}
+.content{
+  position:relative;z-index:3;
+  text-align:center;color:#fff;font-family:Georgia,serif;padding:20px;
+}
+.logo{font-size:clamp(2rem,6vw,3.6rem);font-style:italic;font-weight:700;
+  color:#e8e0d0;text-shadow:0 2px 24px rgba(0,0,0,0.9);}
+.ai{font-size:0.52em;font-style:normal;font-weight:300;
+  letter-spacing:.18em;vertical-align:super;color:#b0a898;}
+.sub{margin-top:10px;font-size:clamp(0.6rem,1.6vw,0.8rem);letter-spacing:.25em;
+  font-family:'Helvetica Neue',sans-serif;font-weight:300;color:#908878;text-transform:uppercase;}
+.tag{margin-top:14px;font-size:clamp(0.85rem,2.2vw,1.2rem);font-style:italic;
+  color:#c0b8a8;text-shadow:0 1px 10px rgba(0,0,0,0.7);}
+.star{position:absolute;border-radius:50%;background:#fff;
+  animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0;z-index:1;}
+@keyframes twinkle{0%,100%{opacity:0}50%{opacity:var(--o,.5)}}
 </style></head><body>
-<div class="hero" id="hero">
-  {"" if not _vsrc else f'<video class="bgvid" id="hv" autoplay muted loop playsinline webkit-playsinline preload="auto"><source src="{_vsrc}" type="video/mp4"></video>'}
+<div class="hero">
   <div class="star" style="width:2px;height:2px;top:15%;left:20%;--d:2.5s;--o:.7;animation-delay:0s"></div>
   <div class="star" style="width:1px;height:1px;top:30%;left:70%;--d:3.2s;--o:.5;animation-delay:.8s"></div>
   <div class="star" style="width:2px;height:2px;top:55%;left:45%;--d:2.8s;--o:.8;animation-delay:.3s"></div>
@@ -301,9 +300,11 @@ video.bgvid{{
   <div class="star" style="width:2px;height:2px;top:70%;left:15%;--d:2.2s;--o:.9;animation-delay:.5s"></div>
   <div class="star" style="width:1px;height:1px;top:40%;left:55%;--d:3.8s;--o:.6;animation-delay:1.8s"></div>
   <div class="star" style="width:2px;height:2px;top:80%;left:80%;--d:2.6s;--o:.7;animation-delay:.9s"></div>
-  <div class="star" style="width:1px;height:1px;top:10%;left:40%;--d:3.1s;--o:.5;animation-delay:.2s"></div>
-  <div class="star" style="width:2px;height:2px;top:60%;left:30%;--d:2.9s;--o:.8;animation-delay:1.5s"></div>
   <div class="star" style="width:2px;height:2px;top:25%;left:92%;--d:2.3s;--o:.9;animation-delay:1.1s"></div>
+
+  <!-- YouTube iframe injected by JS only on non-iOS -->
+  <div id="yt-wrap"></div>
+
   <div class="overlay"></div>
   <div class="content">
     <div class="logo">⚕ MediSight<span class="ai"> AI</span></div>
@@ -311,47 +312,25 @@ video.bgvid{{
     <div class="tag">Intelligence Meets Clinical Precision</div>
   </div>
 </div>
+
 <script>
-(function(){{
-  var v=document.getElementById("hv");
-  if(!v)return;
+(function(){
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) return; // iOS: show gradient + stars only
 
-  // Detect iOS — hide video, show gradient fallback
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-  if(isIOS){{ v.style.display="none"; return; }}
-
-  function p(){{
-    v.muted=true;
-    var r=v.play();
-    if(r&&r.catch)r.catch(function(){{}});
-  }}
-
-  // Try autoplay immediately (works if browser policy allows)
-  p();
-  window.addEventListener("load",p);
-
-  // Laptop: trigger on any mouse/keyboard interaction
-  document.addEventListener("mousemove",p,{{once:true}});
-  document.addEventListener("keydown",p,{{once:true}});
-  document.addEventListener("scroll",p,{{once:true}});
-  document.addEventListener("click",p,{{once:true}});
-
-  // Android: trigger on touch
-  document.addEventListener("touchstart",p,{{once:true,passive:true}});
-
-  // If video errors, hide it — gradient shows underneath
-  v.addEventListener("error",function(){{v.style.display="none";}});
-
-  // Also try via Intersection Observer — fires when iframe becomes visible
-  if("IntersectionObserver" in window){{
-    var obs=new IntersectionObserver(function(entries){{
-      if(entries[0].isIntersecting){{ p(); obs.disconnect(); }}
-    }},{{threshold:0.1}});
-    obs.observe(v);
-  }}
-}})();
+  // Non-iOS: inject YouTube iframe with autoplay+mute
+  var wrap = document.getElementById('yt-wrap');
+  wrap.style.display = 'block';
+  var iframe = document.createElement('iframe');
+  iframe.src = 'https://www.youtube.com/embed/7481EEJ9DVU?autoplay=1&mute=1&loop=1&playlist=7481EEJ9DVU&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = false;
+  wrap.appendChild(iframe);
+})();
 </script>
-</body></html>""", height=390, scrolling=False)
+</body></html>
+""", height=395, scrolling=False)
+
 
 st.markdown("""
 <div class="disclaimer-banner">
