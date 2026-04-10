@@ -239,11 +239,20 @@ def confidence_badge(confidence):
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
 import streamlit.components.v1 as _components
+import base64 as _b64
 
 _hero_css = ""
 if css_path.exists():
     with open(css_path, encoding="utf-8") as _f:
         _hero_css = _f.read()
+
+# Read video and encode as base64 so it works inside the iframe on all platforms
+_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
+if _video_path.exists():
+    with open(_video_path, "rb") as _vf:
+        _video_src = "data:video/mp4;base64," + _b64.b64encode(_vf.read()).decode()
+else:
+    _video_src = "app/static/hero_bg.mp4"
 
 _components.html(f"""<!DOCTYPE html>
 <html>
@@ -256,8 +265,8 @@ html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
 </head>
 <body>
 <div class="hero-header">
-  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline preload="none" id="heroVideo">
-        <source src="app/static/hero_bg.mp4" type="video/mp4">
+  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline preload="auto" id="heroVideo">
+    <source src="{_video_src}" type="video/mp4">
   </video>
   <div class="hero-overlay"></div>
   <div class="hero-content">
