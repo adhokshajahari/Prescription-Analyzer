@@ -238,26 +238,53 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="hero-header">
+import streamlit.components.v1 as _components
 
-  <!-- Background video -->
-  <video class="hero-video" autoplay muted loop playsinline preload="auto">
+_hero_css = ""
+if css_path.exists():
+    with open(css_path, encoding="utf-8") as _f:
+        _hero_css = _f.read()
+
+_components.html(f"""<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+{_hero_css}
+html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
+</style>
+</head>
+<body>
+<div class="hero-header">
+  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline preload="none" id="heroVideo">
     <source src="https://wpriverthemes.com/aixor/wp-content/uploads/2024/09/shutterstock_1097392395-vmake-4.mp4" type="video/mp4">
   </video>
-
-  <!-- Dark overlay: video → black transition -->
   <div class="hero-overlay"></div>
-
-  <!-- Content sits above video -->
   <div class="hero-content">
     <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
     <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
     <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
   </div>
-
 </div>
-""", unsafe_allow_html=True)
+<script>
+(function() {{
+  var vid = document.getElementById('heroVideo');
+  if (!vid) return;
+  function tryPlay() {{
+    var p = vid.play();
+    if (p !== undefined) p.catch(function() {{ vid.style.display = 'none'; }});
+  }}
+  if (vid.readyState >= 2) {{ tryPlay(); }}
+  else {{
+    vid.addEventListener('canplay', tryPlay, {{ once: true }});
+    document.addEventListener('touchstart', function h() {{
+      tryPlay(); document.removeEventListener('touchstart', h);
+    }}, {{ once: true }});
+  }}
+}})();
+</script>
+</body>
+</html>""", height=480, scrolling=False)
 
 st.markdown("""
 <div class="disclaimer-banner">
@@ -279,22 +306,47 @@ with col_input:
 
     with tab_file:
         st.info("📌 Supports PNG, JPG, WEBP prescription scans. For PDFs, use the Paste Text tab.")
-        uploaded = st.file_uploader(
-            "Upload Prescription Image",
-            type=["png", "jpg", "jpeg", "webp"],
-            help="Upload a clear scan or photo of the prescription",
-            label_visibility="collapsed",
-        )
-        if uploaded:
-            file_bytes = uploaded.read()
+
+        # ── Mobile-friendly: two clear options ──────────────────────────────
+        mobile_col1, mobile_col2 = st.columns(2)
+
+        with mobile_col1:
+            st.markdown("**📁 Upload from Gallery**")
+            uploaded = st.file_uploader(
+                "Upload Prescription Image",
+                type=["png", "jpg", "jpeg", "webp"],
+                help="Choose an existing image from your device gallery",
+                label_visibility="collapsed",
+                key="gallery_uploader",
+            )
+
+        with mobile_col2:
+            st.markdown("**📷 Take a Photo**")
+            camera_image = st.camera_input(
+                "Take a photo of the prescription",
+                label_visibility="collapsed",
+                key="camera_input",
+            )
+
+        # ── Process whichever source was used ───────────────────────────────
+        active_file = camera_image or uploaded  # camera takes priority if both used
+
+        if active_file:
+            file_bytes = active_file.read()
             b64 = base64.standard_b64encode(file_bytes).decode()
-            ftype = uploaded.type
+
+            # st.camera_input always returns JPEG; st.file_uploader has a .type attr
+            if hasattr(active_file, "type") and active_file.type:
+                ftype = active_file.type
+            else:
+                ftype = "image/jpeg"  # camera_input default
+
             if ftype.startswith("image/"):
                 st.session_state.uploaded_file_data = b64
                 st.session_state.uploaded_file_type = ftype
-                st.image(file_bytes, caption="Uploaded Prescription", use_container_width=True)
+                st.image(file_bytes, caption="Prescription Preview", use_container_width=True)
             else:
-                st.error("Unsupported file type.")
+                st.error("Unsupported file type. Please upload PNG, JPG, or WEBP.")
 
     with tab_text:
         if st.button("Load Sample Prescription", use_container_width=True, key="sample_btn"):
