@@ -239,20 +239,11 @@ def confidence_badge(confidence):
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
 import streamlit.components.v1 as _components
-import base64 as _b64
 
 _hero_css = ""
 if css_path.exists():
     with open(css_path, encoding="utf-8") as _f:
         _hero_css = _f.read()
-
-# Read video and encode as base64 so it works inside the iframe on all platforms
-_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
-if _video_path.exists():
-    with open(_video_path, "rb") as _vf:
-        _video_src = "data:video/mp4;base64," + _b64.b64encode(_vf.read()).decode()
-else:
-    _video_src = "app/static/hero_bg.mp4"
 
 _components.html(f"""<!DOCTYPE html>
 <html>
@@ -261,13 +252,44 @@ _components.html(f"""<!DOCTYPE html>
 <style>
 {_hero_css}
 html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
+
+/* YouTube iframe as background */
+.yt-bg {{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}}
+.yt-bg iframe {{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 56.25vw;   /* 16:9 ratio */
+  min-height: 100%;
+  min-width: 177.78vh; /* 16:9 ratio */
+  transform: translate(-50%, -50%);
+  border: none;
+  filter: grayscale(60%) brightness(0.52) contrast(1.12);
+  -webkit-filter: grayscale(60%) brightness(0.52) contrast(1.12);
+}}
 </style>
 </head>
 <body>
 <div class="hero-header">
-  <video class="hero-video" autoplay muted loop playsinline webkit-playsinline preload="auto" id="heroVideo">
-    <source src="{_video_src}" type="video/mp4">
-  </video>
+
+  <!-- YouTube background -->
+  <div class="yt-bg">
+    <iframe
+      src="https://www.youtube.com/embed/7481EEJ9DVU?autoplay=1&mute=1&loop=1&playlist=7481EEJ9DVU&controls=0&showinfo=0&rel=0&disablekb=1&modestbranding=1&playsinline=1"
+      allow="autoplay; fullscreen"
+      allowfullscreen
+    ></iframe>
+  </div>
+
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
@@ -275,23 +297,6 @@ html, body {{ margin: 0; padding: 0; background: #000; overflow: hidden; }}
     <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
   </div>
 </div>
-<script>
-(function() {{
-  var vid = document.getElementById('heroVideo');
-  if (!vid) return;
-  function tryPlay() {{
-    var p = vid.play();
-    if (p !== undefined) p.catch(function() {{ vid.style.display = 'none'; }});
-  }}
-  if (vid.readyState >= 2) {{ tryPlay(); }}
-  else {{
-    vid.addEventListener('canplay', tryPlay, {{ once: true }});
-    document.addEventListener('touchstart', function h() {{
-      tryPlay(); document.removeEventListener('touchstart', h);
-    }}, {{ once: true }});
-  }}
-}})();
-</script>
 </body>
 </html>""", height=480, scrolling=False)
 
