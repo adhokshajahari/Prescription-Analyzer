@@ -316,28 +316,39 @@ video.bgvid{{
   var v=document.getElementById("hv");
   if(!v)return;
 
-  // Detect iOS — Safari on iPhone/iPad blocks autoplay in iframes entirely
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  // Detect iOS — hide video, show gradient fallback
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  if(isIOS){{ v.style.display="none"; return; }}
 
-  if(isIOS){{
-    // iOS: hide video, let the gradient+stars show
-    v.style.display="none";
-    return;
-  }}
-
-  // Laptop + Android: play the video
   function p(){{
     v.muted=true;
     var r=v.play();
     if(r&&r.catch)r.catch(function(){{}});
   }}
+
+  // Try autoplay immediately (works if browser policy allows)
   p();
   window.addEventListener("load",p);
-  // Android Chrome sometimes needs a user gesture first
-  document.addEventListener("touchstart",p,{{once:true,passive:true}});
+
+  // Laptop: trigger on any mouse/keyboard interaction
+  document.addEventListener("mousemove",p,{{once:true}});
+  document.addEventListener("keydown",p,{{once:true}});
+  document.addEventListener("scroll",p,{{once:true}});
   document.addEventListener("click",p,{{once:true}});
-  // If video errors for any reason, hide it — gradient still shows
+
+  // Android: trigger on touch
+  document.addEventListener("touchstart",p,{{once:true,passive:true}});
+
+  // If video errors, hide it — gradient shows underneath
   v.addEventListener("error",function(){{v.style.display="none";}});
+
+  // Also try via Intersection Observer — fires when iframe becomes visible
+  if("IntersectionObserver" in window){{
+    var obs=new IntersectionObserver(function(entries){{
+      if(entries[0].isIntersecting){{ p(); obs.disconnect(); }}
+    }},{{threshold:0.1}});
+    obs.observe(v);
+  }}
 }})();
 </script>
 </body></html>""", height=390, scrolling=False)
