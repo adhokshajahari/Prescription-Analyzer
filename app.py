@@ -238,62 +238,102 @@ def confidence_badge(confidence):
 
 
 # ─── Hero Header ─────────────────────────────────────────────────────────────
-# ─── Load hero video as base64 for reliable cross-platform playback ───────────
-_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
-# Also check the app/static/ subfolder (Streamlit Cloud layout)
-if not _video_path.exists():
-    _video_path = Path(__file__).parent / "app" / "static" / "hero_bg.mp4"
+# Use st.components.v1.html so <video> and <script> tags are NOT stripped
+import streamlit.components.v1 as _components
 
-_video_tag = ""
-if _video_path.exists():
-    with open(_video_path, "rb") as _vf:
-        _video_b64 = base64.b64encode(_vf.read()).decode()
-    _video_tag = (
-        f'<video class="hero-video" autoplay muted loop playsinline '
-        f'webkit-playsinline x5-playsinline preload="auto" id="heroVideo">'
-        f'<source src="data:video/mp4;base64,{_video_b64}" type="video/mp4">'
-        f'</video>'
-    )
+_hero_video_path = Path(__file__).parent / "static" / "hero_bg.mp4"
+if not _hero_video_path.exists():
+    _hero_video_path = Path(__file__).parent / "app" / "static" / "hero_bg.mp4"
 
-st.markdown(f"""
+_hero_video_src = ""
+if _hero_video_path.exists():
+    with open(_hero_video_path, "rb") as _vf:
+        _vb64 = base64.b64encode(_vf.read()).decode()
+    _hero_video_src = f"data:video/mp4;base64,{_vb64}"
+
+_video_element = (
+    f'''<video class="hero-video" id="heroVideo"
+      autoplay muted loop playsinline
+      webkit-playsinline x5-playsinline preload="auto">
+      <source src="{_hero_video_src}" type="video/mp4">
+    </video>'''
+    if _hero_video_src else ""
+)
+
+_components.html(f"""
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+* {{ margin:0; padding:0; box-sizing:border-box; }}
+body {{ background:#000; font-family: Georgia, serif; }}
+.hero-header {{
+  position:relative; width:100%; height:380px;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; background:#000;
+}}
+.hero-video {{
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  min-width:100%; min-height:100%;
+  width:auto; height:auto;
+  object-fit:cover; z-index:0; opacity:0.7;
+}}
+.hero-overlay {{
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%);
+  z-index:1;
+}}
+.hero-content {{
+  position:relative; z-index:2;
+  text-align:center; color:#fff; padding:20px;
+}}
+.hero-logo {{
+  font-size:clamp(2.2rem,6vw,3.8rem);
+  font-style:italic; font-weight:700;
+  color:#e8e0d0; text-shadow:0 2px 20px rgba(0,0,0,0.8);
+}}
+.hero-ai {{
+  font-size:0.55em; font-style:normal; font-weight:300;
+  letter-spacing:0.15em; vertical-align:super; color:#b0a898;
+}}
+.hero-sub {{
+  margin-top:10px;
+  font-size:clamp(0.65rem,1.8vw,0.82rem);
+  letter-spacing:0.25em;
+  font-family:'Helvetica Neue',sans-serif;
+  font-weight:300; color:#a09888; text-transform:uppercase;
+}}
+.hero-tagline {{
+  margin-top:14px;
+  font-size:clamp(0.9rem,2.5vw,1.25rem);
+  font-style:italic; color:#c8c0b0;
+  text-shadow:0 1px 8px rgba(0,0,0,0.6);
+}}
+</style>
+</head>
+<body>
 <div class="hero-header">
-
-  <!-- Background video (base64-embedded for reliable playback) -->
-  {_video_tag}
-
-  <!-- Dark overlay: video → black transition -->
+  {_video_element}
   <div class="hero-overlay"></div>
-
-  <!-- Content sits above video -->
   <div class="hero-content">
     <div class="hero-logo">⚕ MediSight<span class="hero-ai"> AI</span></div>
     <div class="hero-sub">Prescription Intelligence Platform · Powered by Groq</div>
     <div class="hero-tagline">Intelligence Meets Clinical Precision</div>
   </div>
-
 </div>
-
 <script>
-  // Force autoplay on mobile browsers that block it
-  (function() {{
-    function tryPlay() {{
-      var v = document.getElementById('heroVideo');
-      if (v) {{
-        v.muted = true;
-        v.play().catch(function() {{}});
-      }}
-    }}
-    if (document.readyState === 'loading') {{
-      document.addEventListener('DOMContentLoaded', tryPlay);
-    }} else {{
-      tryPlay();
-    }}
-    // Also try on first user interaction (iOS Safari fallback)
-    document.addEventListener('touchstart', tryPlay, {{ once: true }});
-    document.addEventListener('click', tryPlay, {{ once: true }});
-  }})();
+(function() {{
+  function tryPlay() {{
+    var v = document.getElementById('heroVideo');
+    if (v) {{ v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function(){{}}); }}
+  }}
+  tryPlay();
+  document.addEventListener('DOMContentLoaded', tryPlay);
+  document.addEventListener('touchstart', tryPlay, {{ once: true }});
+  document.addEventListener('click', tryPlay, {{ once: true }});
+}})();
 </script>
-""", unsafe_allow_html=True)
+</body></html>
+""", height=395, scrolling=False)
 
 st.markdown("""
 <div class="disclaimer-banner">
